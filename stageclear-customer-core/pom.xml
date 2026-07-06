@@ -9,9 +9,9 @@
         <relativePath>../stageclear-parent/pom.xml</relativePath>
     </parent>
     <groupId>io.stageclear</groupId>
-    <artifactId>stageclear-portal</artifactId>
-    <name>stageclear-portal</name>
-    <description>stageclear-portal</description>
+    <artifactId>stageclear-customer-core</artifactId>
+    <name>stageclear-customer-core</name>
+    <description>StageClear BeeSupport customer core - sessions, messages, agents, tickets, knowledge base</description>
     <url/>
     <licenses>
         <license/>

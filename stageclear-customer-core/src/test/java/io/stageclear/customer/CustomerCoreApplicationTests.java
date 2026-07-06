@@ -1,10 +1,10 @@
-package io.stageclear.demo;
+package io.stageclear.customer;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class StageClearApplicationTests {
+class CustomerCoreApplicationTests {
 
     @Test
     void contextLoads() {
