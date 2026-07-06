@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: stageclear-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ${MYSQL_DATA_PATH}:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -uroot -p\"$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7
+    container_name: stageclear-redis
+    restart: unless-stopped
+    command: --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - ${REDIS_DATA_PATH}:/data
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

@@ -1,0 +1,42 @@
+<configuration>
+    <!-- 日志格式：时间 / 级别 / 线程 / traceId / 类名 / 消息-->
+    <property name="PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%X{traceId}) %logger{50} - %msg%n"/>
+
+    <!-- 控制台 appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 文件 appender（按日期切割） -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/stageclear.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/stageclear.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- dev 环境 -->
+    <springProfile name="dev">
+        <logger name="io.stageclear" level="DEBUG"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+    <!-- prod 环境 -->
+    <springProfile name="prod">
+        <logger name="io.stageclear" level="WARN"/>
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+</configuration>

@@ -2,9 +2,13 @@ package io.stageclear.common.config;
 
 import io.stageclear.common.exception.GlobalExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -27,11 +31,19 @@ public class CommonAutoConfiguration {
      * Spring Boot 默认只配 StringRedisTemplate，业务里要存对象必须自己定义
      */
     @Bean
+    @ConditionalOnClass(RedisOperations.class)
+    @ConditionalOnBean(RedisConnectionFactory.class)
+    @ConditionalOnMissingBean(name = "redisTemplate")
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> tpl = new RedisTemplate<>();
         tpl.setConnectionFactory(factory);
-        tpl.setKeySerializer(new StringRedisSerializer());
-        tpl.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
+        tpl.setKeySerializer(stringSerializer);
+        tpl.setValueSerializer(jsonSerializer);
+        tpl.setHashKeySerializer(stringSerializer);
+        tpl.setHashValueSerializer(jsonSerializer);
+        tpl.afterPropertiesSet();
         return tpl;
     }
 }
