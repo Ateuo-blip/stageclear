@@ -30,6 +30,12 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>io.stageclear</groupId>
+            <artifactId>stageclear-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>

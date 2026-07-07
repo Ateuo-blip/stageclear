@@ -2,13 +2,13 @@ package io.stageclear.common.config;
 
 import io.stageclear.common.exception.GlobalExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -24,6 +24,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  */
 @AutoConfiguration
 @Import({TraceIdFilter.class, GlobalExceptionHandler.class})
+@AutoConfigureAfter(RedisAutoConfiguration.class)
 public class CommonAutoConfiguration {
 
     /**
@@ -31,9 +32,8 @@ public class CommonAutoConfiguration {
      * Spring Boot 默认只配 StringRedisTemplate，业务里要存对象必须自己定义
      */
     @Bean
-    @ConditionalOnClass(RedisOperations.class)
     @ConditionalOnBean(RedisConnectionFactory.class)
-    @ConditionalOnMissingBean(name = "redisTemplate")
+    @ConditionalOnMissingBean(RedisTemplate.class)
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> tpl = new RedisTemplate<>();
         tpl.setConnectionFactory(factory);
