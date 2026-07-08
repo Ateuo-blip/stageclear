@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,69 +14,38 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 系统用户（普通用户 + 坐席账号 共用一张表）
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("customer_agent")   
-public class CustomerAgent implements Serializable {
+@TableName("sys_user")
+public class SysUser implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /**
-     * 工号 A + 5位自增短号
-     */
-    private String agentNo;
+    private String username;
 
-    /**
-     * 关联 sys_user.id
-     */
-    private Long userId;
+    private String password;
 
-    /**
-     * 真实姓名
-     */
-    private String realName;
+    private String nickname;
 
-    /**
-     * 花名/昵称
-     */
-    private String nickName;
+    private String email;
 
-    /**
-     * 状态 ONLINE/BUSY/OFFLINE/AWAY
-     */
-    private String status;
-
-    /**
-     * 最大并发会话数
-     */
-    private Integer maxSessions;
-
-    /**
-     * 当前会话数
-     */
-    private Integer currentLoad;
-
-    /**
-     * 级别 JUNIOR/SENIOR/EXPERT
-     */
-    private String level;
-
-    /**
-     * 所属组
-     */
-    private String team;
-
-    /**
-     * 头像 URL
-     */
-    private String avatar;
+    private Integer status;
 
     @TableLogic
     private Integer isDeleted;
+
+    /**
+     * 乐观锁版本号（每次更新自动 +1，并发更新会失败）
+     */
+    @Version
+    private Long version;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
