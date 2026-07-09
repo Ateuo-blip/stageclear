@@ -15,7 +15,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 /**
  * StageClear 公共模块的 Spring Boot 自动配置
  * <p>
- * 当任意服务（如 portal / auth / gateway）引入 stageclear-common 后，
+ * 当任意服务（如 customer-core / 未来的 user-service / agent-service / kb-service）
+ * 引入 stageclear-common 后，
  * Spring Boot 启动时会自动加载本类，把 common 模块里的 Bean 装进容器。
  * <p>
  * 加载机制见同目录下的：
