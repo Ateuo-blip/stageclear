@@ -20,7 +20,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * Spring Boot 启动时会自动加载本类，把 common 模块里的 Bean 装进容器。
  * <p>
  * 加载机制见同目录下的：
- * META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+ * META-INF/spring/org.springframework.boot.autoconfigure.org.springframework.boot.autoconfigure.AutoConfiguration.imports
  */
 @AutoConfiguration
 @Import({TraceIdFilter.class, GlobalExceptionHandler.class})
