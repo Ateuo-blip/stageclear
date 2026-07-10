@@ -2,6 +2,7 @@ package io.stageclear.common.exception;
 
 import io.stageclear.common.result.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -24,6 +25,12 @@ public class GlobalExceptionHandler {
                 : "参数校验失败";
         log.warn("参数校验失败: {}", message);
         return ApiResponse.fail(400,message);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ApiResponse<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("不支持的请求", e);
+        return ApiResponse.fail(405, "请求方法不支持");
     }
 
     //其他异常
