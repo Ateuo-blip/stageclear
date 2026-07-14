@@ -23,7 +23,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
  */
 @AutoConfiguration
-@Import({TraceIdFilter.class, GlobalExceptionHandler.class})
+@Import({TraceIdFilter.class, GlobalExceptionHandler.class, MyBatisPlusMetaObjectHandler.class})
 @AutoConfigureBefore(RedisAutoConfiguration.class)
 public class CommonAutoConfiguration {
 
