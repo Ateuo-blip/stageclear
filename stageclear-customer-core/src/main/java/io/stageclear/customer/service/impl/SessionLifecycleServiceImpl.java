@@ -9,6 +9,7 @@ import io.stageclear.common.exception.ErrorCode;
 import io.stageclear.common.service.CustomerAgentService;
 import io.stageclear.common.service.CustomerSessionService;
 import io.stageclear.customer.service.SessionLifecycleService;
+import io.stageclear.customer.service.SessionNoGenerator;
 import io.stageclear.customer.statemachine.SessionStateMachine;
 import io.stageclear.customer.vo.SessionVO;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
     private final CustomerSessionService customerSessionService;
     private final SessionStateMachine sessionStateMachine;
     private final CustomerAgentService customerAgentService;
+    private final SessionNoGenerator sessionNoGenerator;
 
     @Override
     public SessionVO createSession(Long userId, String channel, String source) {
@@ -31,7 +33,7 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         }
         String channelOrDefault = channel == null ? "WEB" : channel;
         CustomerSession session = new CustomerSession();
-        session.setSessionNo(generateSessionNo());
+        session.setSessionNo(sessionNoGenerator.nextSessionNo());
         session.setUserId(userId);
         session.setStatus(SessionStatus.WAITING.getCode());
         session.setChannel(channelOrDefault);
@@ -126,10 +128,6 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
             throw new BusinessException(400, "会话状态不合法");
         }
         return sessionStatus;
-    }
-    //TODO 后续修改为S + yyyyMMdd + 6位seq
-    private String generateSessionNo() {
-        return "S" + System.currentTimeMillis();
     }
 
     private CustomerAgent getAgentOrThrow(Long agentId) {
