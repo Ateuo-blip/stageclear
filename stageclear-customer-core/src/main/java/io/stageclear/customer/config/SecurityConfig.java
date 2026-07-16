@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(jsonAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/health", "/auth/login", "/agent/login").permitAll()
+                        .requestMatchers("/health", "/auth/login", "/agent/login","/ws/chat").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
