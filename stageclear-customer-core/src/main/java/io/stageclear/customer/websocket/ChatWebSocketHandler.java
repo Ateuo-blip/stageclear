@@ -15,15 +15,18 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class ChatWebSocketHandler extends TextWebSocketHandler {
+    private final WebSocketSessionManager sessionManager;
     private final ObjectMapper objectMapper;
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         LoginUser loginUser = getLoginUser(session);
-
+        String clientKey = sessionManager.register(loginUser, session);
         sendJson(session, Map.of(
                 "type", "CONNECTED",
+                "clientKey", clientKey,
                 "userType", loginUser.getUserType(),
-                "userId", loginUser.getUserId()
+                "userId", loginUser.getUserId(),
+                "onlineCount", sessionManager.onlineCount()
         ));
     }
 
@@ -34,7 +37,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         if ("PING".equals(type)) {
             sendJson(session, Map.of(
-                    "type", "PONG"
+                    "type", "PONG",
+                    "onlineCount", sessionManager.onlineCount()
             ));
             return;
         }
@@ -46,7 +50,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        // TODO下一步再做连接管理，这里先空着。
+        LoginUser loginUser = getLoginUser(session);
+        sessionManager.unregister(loginUser,session);
     }
 
     private LoginUser getLoginUser(WebSocketSession session) {
