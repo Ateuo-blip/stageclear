@@ -51,7 +51,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         LoginUser loginUser = getLoginUser(session);
-        sessionManager.unregister(loginUser,session);
+        sessionManager.unregister(loginUser, session);
     }
 
     private LoginUser getLoginUser(WebSocketSession session) {

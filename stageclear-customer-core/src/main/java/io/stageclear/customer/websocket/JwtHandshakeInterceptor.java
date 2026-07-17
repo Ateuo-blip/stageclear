@@ -36,7 +36,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                                    Map<String, Object> attributes) {
         String token = resolveToken(request);
         if (token == null || token.isBlank()) {
-            log.warn("WebSocket handshake rejected: missing token, uri={}", request.getURI().getPath());
+            log.warn("WebSocket handshake rejected: missing token, path={}", request.getURI().getPath());
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return false;
         }
@@ -60,7 +60,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                     loginUser.getUsername());
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            log.warn("WebSocket handshake rejected: invalid token, uri={}, reason={}",
+            log.warn("WebSocket handshake rejected: invalid token, path={}, reason={}",
                     request.getURI().getPath(),
                     e.getMessage());
             response.setStatusCode(HttpStatus.UNAUTHORIZED);

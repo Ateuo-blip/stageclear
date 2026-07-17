@@ -2,8 +2,10 @@ package io.stageclear.customer.websocket;
 
 import io.stageclear.customer.security.LoginUser;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,13 +15,16 @@ public class WebSocketSessionManager {
 
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
-    public String register(LoginUser loginUser, WebSocketSession session) {
+    public String register(LoginUser loginUser, WebSocketSession session) throws IOException {
         String clientKey = buildClientKey(loginUser);
-        sessions.put(clientKey, session);
+        WebSocketSession oldSession = sessions.put(clientKey, session);
+        if (oldSession != null && oldSession.isOpen()) {
+            oldSession.close(CloseStatus.NORMAL.withReason("Replaced by a new connection"));
+        }
         return clientKey;
     }
 
-    public void unregister(LoginUser loginUser,WebSocketSession session) {
+    public void unregister(LoginUser loginUser, WebSocketSession session) {
         sessions.remove(buildClientKey(loginUser), session);
     }
 
