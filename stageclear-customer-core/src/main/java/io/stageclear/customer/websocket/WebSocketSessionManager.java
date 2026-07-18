@@ -32,6 +32,12 @@ public class WebSocketSessionManager {
         return Optional.ofNullable(sessions.get(buildClientKey(loginUser)));
     }
 
+    public Optional<WebSocketSession> getSession(String userType, Long userId) {
+        return Optional.ofNullable(sessions.get(buildClientKey(userType, userId)));
+    }
+    private String buildClientKey(String userType, Long userId) {
+        return userType + ":" + userId;
+    }
     public int onlineCount() {
         return sessions.size();
     }
