@@ -4,10 +4,8 @@ services:
     container_name: stageclear-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ALLOW_EMPTY_PASSWORD: ${MYSQL_ALLOW_EMPTY_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "127.0.0.1:3306:3306"
     volumes:
@@ -24,13 +22,10 @@ services:
     image: redis:7
     container_name: stageclear-redis
     restart: unless-stopped
-    command: --requirepass ${REDIS_PASSWORD}
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - ${REDIS_DATA_PATH}:/data
-    environment:
-      REDISCLI_AUTH: ${REDIS_PASSWORD}
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
