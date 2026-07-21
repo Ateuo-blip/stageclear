@@ -4,6 +4,7 @@ import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
 import io.stageclear.common.result.ApiResponse;
 import io.stageclear.customer.security.LoginUser;
+import io.stageclear.customer.service.AgentAssignService;
 import io.stageclear.customer.service.SessionLifecycleService;
 import io.stageclear.customer.vo.SessionVO;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SessionController {
     private final SessionLifecycleService sessionLifecycleService;
+    private final AgentAssignService agentAssignService;
 
     @PostMapping("/create")
     public ApiResponse<SessionVO> createSession(@AuthenticationPrincipal LoginUser loginUser,
@@ -60,5 +62,14 @@ public class SessionController {
         return ApiResponse.success(
                 sessionLifecycleService.endSession(sessionId, endReason)
         );
+    }
+
+    @PostMapping("/{sessionId}/assign-auto")
+    public ApiResponse<SessionVO> assignAuto(@AuthenticationPrincipal LoginUser loginUser,
+                                             @PathVariable("sessionId") Long sessionId) {
+        if (!loginUser.isAgent()) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        return ApiResponse.success(agentAssignService.assignAuto(sessionId));
     }
 }
