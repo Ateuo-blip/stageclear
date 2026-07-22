@@ -3,6 +3,7 @@ package io.stageclear.customer.service.impl;
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import io.stageclear.common.entity.CustomerAgent;
 import io.stageclear.common.entity.CustomerSession;
+import io.stageclear.common.enums.AgentStatus;
 import io.stageclear.common.enums.SessionStatus;
 import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
@@ -14,8 +15,10 @@ import io.stageclear.customer.statemachine.SessionStateMachine;
 import io.stageclear.customer.vo.SessionVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -49,15 +52,21 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public SessionVO assignAgent(Long sessionId, Long agentId) {
         CustomerSession session = getSessionOrThrow(sessionId);
-        getAgentOrThrow(agentId);
+        CustomerAgent targetAgent = getAgentOrThrow(agentId);
 
         SessionStatus currentStatus = parseStatus(session.getStatus());
         SessionStatus targetStatus = SessionStatus.IN_PROGRESS;
 
         sessionStateMachine.checkTransit(currentStatus, targetStatus);
         boolean firstAssign = currentStatus == SessionStatus.WAITING;
+        //这次分配后，会话绑定的坐席是否发生变化
+        boolean agentChanged = !Objects.equals(session.getAgentId(), targetAgent.getId());
+        if (agentChanged) {
+            occupyAgentLoad(targetAgent.getId());
+        }
 
         LambdaUpdateChainWrapper<CustomerSession> update = customerSessionService.lambdaUpdate()
                 .eq(CustomerSession::getId, sessionId)
@@ -67,10 +76,21 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         if (firstAssign) {
             update.set(CustomerSession::getStartedAt, LocalDateTime.now());
         }
+        if (session.getAgentId() == null) {
+            update.isNull(CustomerSession::getAgentId);
+        } else {
+            update.eq(CustomerSession::getAgentId,session.getAgentId());
+        }
 
         boolean updated = update.update();
+        if (!updated) {
+            throw new BusinessException(400, "会话状态已变化，请刷新后重试");
+        }
+        if (agentChanged) {
+            releaseAgentLoad(session);
+        }
 
-        return returnUpdatedSessionOrThrow(updated, sessionId);
+        return SessionVO.from(customerSessionService.getById(sessionId));
     }
 
     @Override
@@ -90,6 +110,13 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         return returnUpdatedSessionOrThrow(updated, sessionId);
     }
 
+    /**
+     * 结束会话同时释放坐席资源
+     * @param sessionId
+     * @param endReason
+     * @return
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public SessionVO endSession(Long sessionId, String endReason) {
         CustomerSession session = getSessionOrThrow(sessionId);
@@ -98,15 +125,18 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         SessionStatus targetStatus = SessionStatus.ENDED;
         sessionStateMachine.checkTransit(currentStatus, targetStatus);
 
-        boolean updated = customerSessionService.lambdaUpdate()
+        boolean sessionUpdated = customerSessionService.lambdaUpdate()
                 .eq(CustomerSession::getId, sessionId)
                 .eq(CustomerSession::getStatus, currentStatus.getCode())
                 .set(CustomerSession::getStatus, targetStatus.getCode())
                 .set(CustomerSession::getEndedAt, LocalDateTime.now())
                 .set(CustomerSession::getEndReason, endReason)
                 .update();
-
-        return returnUpdatedSessionOrThrow(updated, sessionId);
+        if (!sessionUpdated) {
+            throw new BusinessException(400, "会话状态已变化，请刷新后重试");
+        }
+        releaseAgentLoad(session);
+        return SessionVO.from(customerSessionService.getById(sessionId));
     }
 
     private CustomerSession getSessionOrThrow(Long sessionId) {
@@ -149,5 +179,32 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         }
 
         return SessionVO.from(customerSessionService.getById(sessionId));
+    }
+
+    private void releaseAgentLoad(CustomerSession session) {
+        Long agentId = session.getAgentId();
+        if (agentId == null) {
+            return;
+        }
+        boolean released = customerAgentService.lambdaUpdate()
+                .eq(CustomerAgent::getId, agentId)
+                .gt(CustomerAgent::getCurrentLoad, 0)
+                .setSql("current_load = current_load - 1")
+                .update();
+        if (!released) {
+            throw new BusinessException(400, "释放坐席负载异常，请重试");
+        }
+    }
+
+    private void occupyAgentLoad(Long agentId) {
+        boolean occupied = customerAgentService.lambdaUpdate()
+                .eq(CustomerAgent::getId, agentId)
+                .eq(CustomerAgent::getStatus, AgentStatus.ONLINE.getCode())
+                .apply("current_load < max_sessions")
+                .setSql("current_load = current_load + 1")
+                .update();
+        if (!occupied) {
+            throw new BusinessException(400, "坐席不在线或容量已满，请重试");
+        }
     }
 }
