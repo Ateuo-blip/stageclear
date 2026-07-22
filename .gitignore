@@ -32,3 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 stageclear-common/target/
+
+# Local agent/config files
+.env
+AGENTS.md
+CLAUDE.md
