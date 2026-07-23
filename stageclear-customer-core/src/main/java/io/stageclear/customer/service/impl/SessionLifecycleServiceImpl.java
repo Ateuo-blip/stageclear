@@ -9,17 +9,22 @@ import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
 import io.stageclear.common.service.CustomerAgentService;
 import io.stageclear.common.service.CustomerSessionService;
+import io.stageclear.customer.event.CustomerEventPublisher;
+import io.stageclear.customer.event.dto.SessionAssignedEvent;
 import io.stageclear.customer.service.SessionLifecycleService;
 import io.stageclear.customer.service.SessionNoGenerator;
 import io.stageclear.customer.statemachine.SessionStateMachine;
 import io.stageclear.customer.vo.SessionVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SessionLifecycleServiceImpl implements SessionLifecycleService {
@@ -28,6 +33,7 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
     private final SessionStateMachine sessionStateMachine;
     private final CustomerAgentService customerAgentService;
     private final SessionNoGenerator sessionNoGenerator;
+    private final CustomerEventPublisher customerEventPublisher;
 
     @Override
     public SessionVO createSession(Long userId, String channel, String source) {
@@ -89,8 +95,19 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         if (agentChanged) {
             releaseAgentLoad(session);
         }
-
-        return SessionVO.from(customerSessionService.getById(sessionId));
+        CustomerSession updatedSession = customerSessionService.getById(sessionId);
+        customerEventPublisher.publishSessionAssigned(SessionAssignedEvent.builder()
+                .sessionId(updatedSession.getId())
+                .sessionNo(updatedSession.getSessionNo())
+                .agentId(targetAgent.getId())
+                .agentNo(targetAgent.getAgentNo())
+                .previousAgentId(session.getAgentId())
+                .previousAgentNo(null)
+                .assignType(firstAssign ? "MANUAL" : "TRANSFER")
+                .assignedAt(LocalDateTime.now())
+                .traceId(MDC.get("traceId"))
+                .build());
+        return SessionVO.from(updatedSession);
     }
 
     @Override

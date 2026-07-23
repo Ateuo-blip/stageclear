@@ -8,11 +8,14 @@ import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
 import io.stageclear.common.service.CustomerAgentService;
 import io.stageclear.common.service.CustomerSessionService;
+import io.stageclear.customer.event.CustomerEventPublisher;
+import io.stageclear.customer.event.dto.SessionAssignedEvent;
 import io.stageclear.customer.service.AgentAssignService;
 import io.stageclear.customer.strategy.AgentAssignStrategy;
 import io.stageclear.customer.strategy.AgentAssignStrategyFactory;
 import io.stageclear.customer.vo.SessionVO;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,7 @@ public class AgentAssignServiceImpl implements AgentAssignService {
     private final AgentAssignStrategyFactory agentAssignStrategyFactory;
     private final CustomerAgentService customerAgentService;
     private final CustomerSessionService customerSessionService;
+    private final CustomerEventPublisher customerEventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -68,6 +72,20 @@ public class AgentAssignServiceImpl implements AgentAssignService {
         if (!sessionUpdate) {
             throw new BusinessException(400,"会话状态已变化，请刷新后重试");
         }
-        return SessionVO.from(customerSessionService.getById(session.getId()));
+        CustomerSession updatedSession = customerSessionService.getById(session.getId());
+
+        customerEventPublisher.publishSessionAssigned(SessionAssignedEvent.builder()
+                .sessionId(updatedSession.getId())
+                .sessionNo(updatedSession.getSessionNo())
+                .agentId(agent.getId())
+                .agentNo(agent.getAgentNo())
+                .previousAgentId(session.getAgentId())
+                .previousAgentNo(null)
+                .assignType(status == SessionStatus.WAITING ? "AUTO" : "TRANSFER")
+                .assignedAt(LocalDateTime.now())
+                .traceId(MDC.get("traceId"))
+                .build());
+
+        return SessionVO.from(updatedSession);
     }
 }

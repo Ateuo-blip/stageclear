@@ -8,17 +8,22 @@ import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
 import io.stageclear.common.service.CustomerMessageService;
 import io.stageclear.common.service.CustomerSessionService;
+import io.stageclear.customer.event.CustomerEventPublisher;
+import io.stageclear.customer.event.dto.MessageCreatedEvent;
 import io.stageclear.customer.security.LoginUser;
 import io.stageclear.customer.service.ChatMessageService;
 import io.stageclear.customer.vo.MessageVO;
 import io.stageclear.customer.websocket.ChatSendResult;
 import io.stageclear.customer.websocket.WsMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatMessageServiceImpl implements ChatMessageService {
@@ -27,6 +32,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     private final CustomerSessionService customerSessionService;
     private final CustomerMessageService customerMessageService;
+    private final CustomerEventPublisher customerEventPublisher;
 
     @Override
     public ChatSendResult handleChatSend(LoginUser loginUser, WsMessage message) {
@@ -60,6 +66,16 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         if (!saved) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }
+        customerEventPublisher.publishMessageCreated(MessageCreatedEvent.builder()
+                .messageId(entity.getId())
+                .sessionId(session.getId())
+                .sessionNo(session.getSessionNo())
+                .senderType(entity.getSenderType())
+                .senderId(entity.getSenderId())
+                .contentType(entity.getContentType())
+                .sendTime(entity.getSendTime())
+                .traceId(MDC.get("traceId"))
+                .build());
 
         return ChatSendResult.builder()
                 .message(MessageVO.from(entity))
