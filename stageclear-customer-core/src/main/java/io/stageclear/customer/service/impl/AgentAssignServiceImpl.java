@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -75,6 +76,7 @@ public class AgentAssignServiceImpl implements AgentAssignService {
         CustomerSession updatedSession = customerSessionService.getById(session.getId());
 
         customerEventPublisher.publishSessionAssigned(SessionAssignedEvent.builder()
+                .eventId(UUID.randomUUID().toString().replace("-", ""))
                 .sessionId(updatedSession.getId())
                 .sessionNo(updatedSession.getSessionNo())
                 .agentId(agent.getId())

@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -67,6 +68,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }
         customerEventPublisher.publishMessageCreated(MessageCreatedEvent.builder()
+                .eventId(UUID.randomUUID().toString().replace("-", ""))
                 .messageId(entity.getId())
                 .sessionId(session.getId())
                 .sessionNo(session.getSessionNo())

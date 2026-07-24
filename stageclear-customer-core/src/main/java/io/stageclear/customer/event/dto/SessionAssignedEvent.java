@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SessionAssignedEvent {
+    private String eventId;
     private Long sessionId;
     private String sessionNo;
     private Long agentId;

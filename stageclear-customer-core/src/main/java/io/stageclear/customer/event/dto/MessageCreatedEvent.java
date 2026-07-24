@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MessageCreatedEvent {
-
+    private String eventId;
     private Long messageId;
     private Long sessionId;
     private String sessionNo;

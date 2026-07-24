@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -97,6 +98,7 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         }
         CustomerSession updatedSession = customerSessionService.getById(sessionId);
         customerEventPublisher.publishSessionAssigned(SessionAssignedEvent.builder()
+                .eventId(UUID.randomUUID().toString().replace("-", ""))
                 .sessionId(updatedSession.getId())
                 .sessionNo(updatedSession.getSessionNo())
                 .agentId(targetAgent.getId())
