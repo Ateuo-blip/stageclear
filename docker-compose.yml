@@ -74,5 +74,5 @@ services:
       - "127.0.0.1:10909:10909"
       - "127.0.0.1:10911:10911"
     volumes:
-      - ./docs/docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
+      - ./docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
       - ${ROCKETMQ_STORE_PATH}:/home/rocketmq/store
