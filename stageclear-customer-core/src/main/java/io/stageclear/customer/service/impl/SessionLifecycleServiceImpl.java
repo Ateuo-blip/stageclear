@@ -9,6 +9,8 @@ import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
 import io.stageclear.common.service.CustomerAgentService;
 import io.stageclear.common.service.CustomerSessionService;
+import io.stageclear.customer.delay.CustomerDelayPublisher;
+import io.stageclear.customer.delay.dto.WaitingSessionTimeoutMessage;
 import io.stageclear.customer.event.CustomerEventPublisher;
 import io.stageclear.customer.event.dto.SessionAssignedEvent;
 import io.stageclear.customer.service.SessionLifecycleService;
@@ -35,6 +37,7 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
     private final CustomerAgentService customerAgentService;
     private final SessionNoGenerator sessionNoGenerator;
     private final CustomerEventPublisher customerEventPublisher;
+    private final CustomerDelayPublisher customerDelayPublisher;
 
     @Override
     public SessionVO createSession(Long userId, String channel, String source) {
@@ -54,7 +57,16 @@ public class SessionLifecycleServiceImpl implements SessionLifecycleService {
         if (!saved) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }
-
+        LocalDateTime now = LocalDateTime.now();
+        customerDelayPublisher.publishWaitingSessionTimeout(WaitingSessionTimeoutMessage.builder()
+                .eventId(UUID.randomUUID().toString().replace("-", ""))
+                .sessionId(session.getId())
+                .sessionNo(session.getSessionNo())
+                .userId(session.getUserId())
+                .createdAt(now)
+                .checkAt(now.plusMinutes(2))
+                .reason("WAITING_SESSION_TIMEOUT")
+                .traceId(MDC.get("traceId")).build());
         return SessionVO.from(session);
     }
 

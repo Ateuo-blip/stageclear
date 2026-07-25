@@ -54,3 +54,25 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - ${KAFKA_DATA_PATH}:/tmp/kraft-combined-logs
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.0
+    container_name: stageclear-rocketmq-namesrv
+    restart: unless-stopped
+    command: sh mqnamesrv
+    ports:
+      - "127.0.0.1:9876:9876"
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.0
+    container_name: stageclear-rocketmq-broker
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv
+    command: sh mqbroker -c /home/rocketmq/conf/broker.conf
+    ports:
+      - "127.0.0.1:10909:10909"
+      - "127.0.0.1:10911:10911"
+    volumes:
+      - ./docs/docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
+      - ${ROCKETMQ_STORE_PATH}:/home/rocketmq/store
