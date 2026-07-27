@@ -2,8 +2,10 @@ package io.stageclear.customer.delay.consumer;
 
 import io.stageclear.common.entity.CustomerSession;
 import io.stageclear.common.enums.SessionStatus;
+import io.stageclear.common.exception.NoAvailableAgentException;
 import io.stageclear.common.service.CustomerSessionService;
 import io.stageclear.customer.delay.CustomerDelayTopics;
+import io.stageclear.customer.delay.SessionCompensationNotifyService;
 import io.stageclear.customer.delay.dto.WaitingSessionTimeoutMessage;
 import io.stageclear.customer.service.AgentAssignService;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +29,11 @@ import java.util.Objects;
 )
 public class WaitingSessionTimeoutConsumer implements RocketMQListener<WaitingSessionTimeoutMessage> {
 
+    private static final int MAX_NO_AGENT_ATTEMPTS = 2;
+
     private final CustomerSessionService customerSessionService;
     private final AgentAssignService agentAssignService;
+    private final SessionCompensationNotifyService sessionCompensationNotifyService;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
@@ -37,10 +42,11 @@ public class WaitingSessionTimeoutConsumer implements RocketMQListener<WaitingSe
             log.warn("rocketmq delay message eventId is blank, message={}", message);
             return;
         }
-        String key = "stageclear:rocketmq:consumed:" + message.getEventId();
+        String consumedKey = "stageclear:rocketmq:consumed:" + message.getEventId();
+        String retryKey = "stageclear:rocketmq:retry:waiting-session-timeout:" + message.getEventId();
 
         Boolean firstConsume = redisTemplate.opsForValue()
-                .setIfAbsent(key, "1", Duration.ofDays(7));
+                .setIfAbsent(consumedKey, "1", Duration.ofDays(7));
 
         if (!Boolean.TRUE.equals(firstConsume)) {
             log.info("duplicate rocketmq delay message ignored, eventId={}", message.getEventId());
@@ -76,8 +82,24 @@ public class WaitingSessionTimeoutConsumer implements RocketMQListener<WaitingSe
 
             log.info("waiting session timeout detected, try auto assign, sessionNo={}", session.getSessionNo());
             agentAssignService.assignAuto(session.getId());
+        } catch (NoAvailableAgentException e) {
+            CustomerSession session = customerSessionService.getById(message.getSessionId());
+            Long attempts = redisTemplate.opsForValue().increment(retryKey);
+            redisTemplate.expire(retryKey, Duration.ofDays(7));
+
+            if (attempts != null && attempts >= MAX_NO_AGENT_ATTEMPTS && session != null) {
+                log.warn("waiting session auto assign failed twice, notify user, sessionNo={}, attempts={}",
+                        session.getSessionNo(), attempts);
+                sessionCompensationNotifyService.notifyWaitingSessionBusy(session);
+                return;
+            }
+
+            redisTemplate.delete(consumedKey);
+            log.warn("waiting session auto assign no available agent, retry later, eventId={}, sessionId={}, attempts={}",
+                    message.getEventId(), message.getSessionId(), attempts);
+            throw e;
         } catch (Exception e) {
-            redisTemplate.delete(key);
+            redisTemplate.delete(consumedKey);
             log.error("consume waiting session timeout message failed, eventId={}, sessionId={}",
                     message.getEventId(), message.getSessionId(), e);
             throw e;

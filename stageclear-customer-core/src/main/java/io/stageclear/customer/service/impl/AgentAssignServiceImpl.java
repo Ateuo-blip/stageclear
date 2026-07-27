@@ -6,6 +6,7 @@ import io.stageclear.common.enums.AgentStatus;
 import io.stageclear.common.enums.SessionStatus;
 import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
+import io.stageclear.common.exception.NoAvailableAgentException;
 import io.stageclear.common.service.CustomerAgentService;
 import io.stageclear.common.service.CustomerSessionService;
 import io.stageclear.customer.event.CustomerEventPublisher;
@@ -47,7 +48,7 @@ public class AgentAssignServiceImpl implements AgentAssignService {
         AgentAssignStrategy leastBusy = agentAssignStrategyFactory.getStrategy("LEAST_BUSY");
         CustomerAgent customerAgent = leastBusy.selectAgent(session);
         if (null == customerAgent) {
-            throw new BusinessException(400, "坐席容量已满，请重试");
+            throw new NoAvailableAgentException();
         }
 
         return updateAgentAndSession(customerAgent, session, currentStatus);
