@@ -8,6 +8,8 @@ import io.stageclear.common.exception.BusinessException;
 import io.stageclear.common.exception.ErrorCode;
 import io.stageclear.common.service.CustomerMessageService;
 import io.stageclear.common.service.CustomerSessionService;
+import io.stageclear.customer.delay.CustomerDelayPublisher;
+import io.stageclear.customer.delay.dto.AgentReplyTimeoutMessage;
 import io.stageclear.customer.event.CustomerEventPublisher;
 import io.stageclear.customer.event.dto.MessageCreatedEvent;
 import io.stageclear.customer.security.LoginUser;
@@ -34,7 +36,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final CustomerSessionService customerSessionService;
     private final CustomerMessageService customerMessageService;
     private final CustomerEventPublisher customerEventPublisher;
-
+    private final CustomerDelayPublisher customerDelayPublisher;
     @Override
     public ChatSendResult handleChatSend(LoginUser loginUser, WsMessage message) {
         if (message.getSessionId() == null) {
@@ -78,6 +80,21 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .sendTime(entity.getSendTime())
                 .traceId(MDC.get("traceId"))
                 .build());
+        //延时检查用户消息是否回复,未回复提醒坐席
+        if (SenderType.USER.getCode().equals(entity.getSenderType())) {
+            LocalDateTime now = LocalDateTime.now();
+            customerDelayPublisher.publishAgentReplyTimeout(AgentReplyTimeoutMessage.builder()
+                    .eventId(UUID.randomUUID().toString().replace("-", ""))
+                    .sessionId(session.getId())
+                    .sessionNo(session.getSessionNo())
+                    .userId(session.getUserId())
+                    .agentId(session.getAgentId())
+                    .userMessageId(entity.getId())
+                    .userMessageSendTime(entity.getSendTime())
+                    .checkAt(now.plusMinutes(1))
+                    .traceId(MDC.get("traceId"))
+                    .build());
+        }
 
         return ChatSendResult.builder()
                 .message(MessageVO.from(entity))
